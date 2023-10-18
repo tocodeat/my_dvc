@@ -228,56 +228,98 @@ data.drop('howlong', axis=1, inplace=True)
 data.info()
 
 
-# In[34]:
+# In[31]:
 
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
+# from sklearn.preprocessing import StandardScaler
 
-# Assuming 'data' is your dataframe
-X = data.drop('total_lift', axis=1)  # All columns except the dependent variable
-y = data['total_lift']
+# # Features to scale
+# features_to_scale = ['total_lift']
 
-# Splitting the data into training and testing sets (80% train, 20% test)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# # Initialize the scaler
+# scaler = StandardScaler()
 
-# Creating a Random Forest Regressor
-rf = RandomForestRegressor(n_estimators=100, random_state=42)
-
-# Training the model
-rf.fit(X_train, y_train)
-
-# Predicting on the test data
-y_pred = rf.predict(X_test)
-
-# Evaluating the model using Mean Squared Error (MSE)
-mse = mean_squared_error(y_test, y_pred)
-print(f"Mean Squared Error: {mse}")
-
-
-# In[35]:
-
-
-from sklearn.metrics import r2_score
-# Calculating the R^2 score
-r2 = r2_score(y_test, y_pred)
-print(f"R^2 Score: {r2:.2f}")
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
+# # Fit the scaler to the data and transform
+# data[features_to_scale] = scaler.fit_transform(data[features_to_scale])
 
 
 # In[32]:
+
+
+# from sklearn.model_selection import train_test_split
+# from sklearn.ensemble import RandomForestRegressor
+# from sklearn.metrics import mean_squared_error
+
+# # Assuming 'data' is your dataframe
+# X = data.drop('total_lift', axis=1)  # All columns except the dependent variable
+# y = data['total_lift']
+
+# # Splitting the data into training and testing sets (80% train, 20% test)
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# # Creating a Random Forest Regressor
+# rf = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# # Training the model
+# rf.fit(X_train, y_train)
+
+# # Predicting on the test data
+# y_pred = rf.predict(X_test)
+
+# # Evaluating the model using Mean Squared Error (MSE)
+# mse = mean_squared_error(y_test, y_pred)
+# print(f"Mean Squared Error: {mse}")
+
+
+# In[33]:
+
+
+# from sklearn.metrics import r2_score
+# # Calculating the R^2 score
+# r2 = r2_score(y_test, y_pred)
+# print(f"R^2 Score: {r2:.2f}")
+
+
+# In[36]:
+
+
+# import numpy as np
+
+# rmse = np.sqrt(mse)
+# print(f"Root Mean Squared Error: {rmse}")
+
+
+# In[38]:
+
+
+# # Extracting feature importances and names
+# features = X.columns
+# feature_importances = rf.feature_importances_
+
+
+# In[39]:
+
+
+# # Create a dataframe for feature importances
+# feature_df = pd.DataFrame({
+#     'Feature': features,
+#     'Importance': feature_importances
+# })
+
+# # Sort the dataframe based on importance
+# feature_df = feature_df.sort_values(by='Importance', ascending=False)
+
+# # Display the sorted dataframe
+# print(feature_df)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
 
 
 #     # Remove Outliers
