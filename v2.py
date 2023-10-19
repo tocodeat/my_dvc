@@ -42,6 +42,22 @@ data = data.drop(columns=['affiliate','team','name','athlete_id','fran','helen',
 # In[6]:
 
 
+# Remove Outliers
+
+data = data[data['weight'] < 1500]
+data = data[data['age'] >= 18]
+data = data[(data['height'] < 96) & (data['height'] > 48)]
+
+data = data[(data['deadlift'] > 0) & (data['deadlift'] <= 1105)|((data['gender'] == 'Female') \
+             & (data['deadlift'] <= 636))]
+data = data[(data['candj'] > 0) & (data['candj'] <= 395)]
+data = data[(data['snatch'] > 0) & (data['snatch'] <= 496)]
+data = data[(data['backsq'] > 0) & (data['backsq'] <= 1069)]
+
+
+# In[7]:
+
+
 # Clean Survey Data
 
 decline_dict = {'Decline to answer|': np.nan}
@@ -49,115 +65,167 @@ data = data.replace(decline_dict)
 data = data.dropna(subset=['background','experience','schedule','howlong','eat'])
 
 
-# In[7]:
+# In[8]:
 
 
 data['gender'].value_counts()
 
 
-# In[8]:
+# In[9]:
 
 
 data = data[data['gender'] != '--']
 
 
-# In[9]:
+# In[10]:
 
 
 data.columns
 
 
-# In[10]:
+# In[11]:
 
 
 data.shape
 
 
-# In[11]:
+# In[12]:
 
 
 data['gender'].value_counts().plot(kind='bar')
 
 
-# In[12]:
+# In[13]:
 
 
 data = pd.get_dummies(data, columns=['gender'], drop_first=True)
 
 
-# In[13]:
+# In[14]:
 
 
 data['region'].value_counts().plot(kind='bar')
 
 
-# In[14]:
+# In[15]:
 
 
 data = pd.get_dummies(data, columns=['region'], drop_first=True)
 
 
-# In[15]:
+# In[16]:
 
 
 sns.distplot(data['age'])
 
 
-# In[16]:
+# In[17]:
 
 
 sns.distplot(data['height'])
 
 
-# In[17]:
+# In[18]:
 
 
 sns.distplot(data['weight'])
 
 
-# In[18]:
+# In[19]:
 
 
 sns.distplot(data['candj'])
 
 
-# In[19]:
+# In[20]:
 
 
 sns.distplot(data['snatch'])
 
 
-# In[20]:
+# In[21]:
 
 
 sns.distplot(data['deadlift'])
 
 
-# In[21]:
+# In[22]:
 
 
 sns.distplot(data['backsq'])
 
 
-# In[22]:
+# In[23]:
 
 
 data['total_lift'] = data['candj'] + data['snatch'] + data['deadlift'] + data['backsq']
 
 
-# In[23]:
+# In[24]:
 
 
 sns.distplot(data['total_lift'])
 
 
-# In[24]:
+# In[25]:
 
 
 data.drop(['candj','snatch','deadlift','backsq'], axis=1, inplace=True)
 
 
-# In[25]:
+# In[26]:
+
+
+## Creating new features
+
+
+# In[27]:
+
+
+# 1. Calculate BMI
+data['bmi'] = data['weight'] / (data['height']/100)**2
+data.drop(['height'], axis=1, inplace=True)
+
+
+# In[28]:
+
+
+# 2. Lift Efficiency
+data['lift_efficiency'] = data['total_lift'] / data['weight']
+data.drop(['weight'], axis=1, inplace=True)
+
+
+# In[29]:
+
+
+bins = [17, 27, 37, 47, 56]  # Define age bins
+labels = ['Young Adults', 'Adults', 'Middle-Aged', 'Senior Adults']  # Corresponding labels for the bins
+
+data['age_group'] = pd.cut(data['age'], bins=bins, labels=labels, right=True)
+data = pd.get_dummies(data, columns=['age_group'], drop_first=True)
+data.drop(['age'], axis=1, inplace=True)
+
+
+# In[30]:
+
+
+mean_lift = data['total_lift'].mean()
+std_lift = data['total_lift'].std()
+
+conditions = [
+    data['total_lift'] < mean_lift - std_lift,
+    (data['total_lift'] >= mean_lift - std_lift) & (data['total_lift'] <= mean_lift + std_lift),
+    data['total_lift'] > mean_lift + std_lift
+]
+
+categories = ['Below average', 'Average', 'Above average']
+
+data['performance_category'] = np.select(conditions, categories, default='Unknown')
+
+data = pd.get_dummies(data, columns=['performance_category'], drop_first=True)
+
+
+# In[31]:
 
 
 # Creating binary columns for eat
@@ -169,7 +237,7 @@ data['eat_strict_paleo'] = data['eat'].str.contains("I eat strict Paleo").astype
 data.drop('eat', axis=1, inplace=True)
 
 
-# In[26]:
+# In[32]:
 
 
 # Creating binary columns for background
@@ -181,7 +249,7 @@ data['played_professional_sports'] = data['background'].str.contains("I played p
 data.drop('background', axis=1, inplace=True)
 
 
-# In[27]:
+# In[33]:
 
 
 # Creating binary columns for each category in the 'experience' feature
@@ -195,7 +263,7 @@ data['trains_others'] = data['experience'].str.contains("I train other people").
 data.drop('experience', axis=1, inplace=True)
 
 
-# In[28]:
+# In[34]:
 
 
 # Creating binary columns for each category in the 'schedule' feature
@@ -210,7 +278,7 @@ data.drop('schedule', axis=1, inplace=True)
 
 
 
-# In[29]:
+# In[35]:
 
 
 # Creating binary columns for each category in the 'howlong' feature
@@ -222,19 +290,111 @@ data['less_than_6_months'] = data['howlong'].str.contains("Less than 6 months").
 data.drop('howlong', axis=1, inplace=True)
 
 
-# In[30]:
+# In[36]:
 
 
 data.info()
 
 
-# In[31]:
+# In[37]:
+
+
+from sklearn.preprocessing import StandardScaler
+
+# Features to scale
+features_to_scale = ['total_lift']
+
+# Initialize the scaler
+scaler = StandardScaler()
+
+# Fit the scaler to the data and transform
+data[features_to_scale] = scaler.fit_transform(data[features_to_scale])
+
+
+# In[38]:
 
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
 import numpy as np
+
+# Assuming 'data' is your dataframe
+X = data.drop('total_lift', axis=1)  # All columns except the dependent variable
+y = data['total_lift']
+
+# Splitting the data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Creating a Random Forest Regressor
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Training the model
+rf.fit(X_train, y_train)
+
+# Predicting on the test data
+y_pred = rf.predict(X_test)
+
+# Evaluating the model using various metrics:
+
+# Mean Squared Error (MSE)
+mse = mean_squared_error(y_test, y_pred)
+print(f"Mean Squared Error (MSE): {mse}")
+
+# Root Mean Squared Error (RMSE)
+rmse = np.sqrt(mse)
+print(f"Root Mean Squared Error (RMSE): {rmse}")
+
+# Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_test, y_pred)
+print(f"Mean Absolute Error (MAE): {mae}")
+
+# R-squared (R^2)
+r2 = r2_score(y_test, y_pred)
+print(f"R-squared (R^2): {r2}")
+
+# Explained Variance Score (EVS)
+evs = explained_variance_score(y_test, y_pred)
+print(f"Explained Variance Score (EVS): {evs}")
+
+
+# In[39]:
+
+
+# Extracting feature importances and names
+features = X.columns
+feature_importances = rf.feature_importances_
+
+# Create a dataframe for feature importances
+feature_df = pd.DataFrame({
+    'Feature': features,
+    'Importance': feature_importances
+})
+
+# Sort the dataframe based on importance
+feature_df = feature_df.sort_values(by='Importance', ascending=False)
+
+# Display the sorted dataframe
+print(feature_df)
+
+
+
+# In[40]:
+
+
+# Define a list of columns to keep
+columns_to_keep = [
+    'gender_Male',
+    'lift_efficiency',
+    'performance_category_Average',
+    'bmi',
+    'performance_category_Below average',
+    'played_college_sports',
+    'total_lift' # You need to keep the dependent variable for now
+]
+
+# Drop all other columns
+data = data[columns_to_keep]
 
 # Assuming 'data' is your dataframe
 X = data.drop('total_lift', axis=1)  # All columns except the dependent variable
